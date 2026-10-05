@@ -1,0 +1,73 @@
+name: ci
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+# Branch protection: mark "test", "official-suite" and "fuzz-smoke" (or just "ci-ok", which needs all three) as required status checks.
+jobs:
+  test:
+    name: test (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      - run: npm test
+        env:
+          REQUIRE_WORKERS: "1"
+
+  official-suite:
+    name: official-suite (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      # Clones cure53/DOMPurify at the pinned tag and runs its full QUnit suite with the shim window, compared assertion by assertion with the jsdom run.
+      - run: sh scripts/official-suite.sh
+
+  fuzz-smoke:
+    name: fuzz-smoke (node ${{ matrix.node }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node: [20, 22, 24]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node }}
+          cache: npm
+      - run: npm ci
+      # The clone only supplies extra fuzz seeds (string literals from DOMPurify's own test file).
+      - run: sh scripts/fetch-dompurify.sh
+      - run: node scripts/fuzz.mjs --cases 20000
+
+  ci-ok:
+    name: ci-ok
+    if: always()
+    needs: [test, official-suite, fuzz-smoke]
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          test "${{ needs.test.result }}" = "success" && test "${{ needs.official-suite.result }}" = "success" && test "${{ needs.fuzz-smoke.result }}" = "success"

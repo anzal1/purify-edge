@@ -1,0 +1,69 @@
+{
+  "name": "purify-edge",
+  "version": "0.1.0",
+  "description": "DOMPurify without jsdom. Byte-identical output, small, runs on Workers and other edge runtimes.",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./src/index.js",
+  "types": "./src/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./src/index.d.ts",
+        "default": "./src/index.js"
+      },
+      "require": {
+        "types": "./src/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "src",
+    "dist",
+    "README.md",
+    "SECURITY.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "pretest": "npm run build",
+    "test": "node --test --test-concurrency=1 test/*.test.mjs",
+    "test:official": "sh scripts/official-suite.sh",
+    "test:fuzz": "node scripts/fuzz.mjs --cases 20000",
+    "prepack": "npm run build"
+  },
+  "keywords": [
+    "dompurify",
+    "sanitize",
+    "sanitizer",
+    "xss",
+    "html",
+    "jsdom",
+    "parse5",
+    "edge",
+    "cloudflare-workers",
+    "workers",
+    "vercel-edge",
+    "isomorphic-dompurify"
+  ],
+  "author": "Anzal Abidi",
+  "license": "MIT",
+  "dependencies": {
+    "dompurify": "3.4.16",
+    "parse5": "8.0.1"
+  },
+  "devDependencies": {
+    "@edge-runtime/vm": "5.0.0",
+    "esbuild": "0.28.2",
+    "jsdom": "29.1.1",
+    "marked": "18.0.14",
+    "miniflare": "4.20260730.0",
+    "typescript": "5.9.3"
+  }
+}
