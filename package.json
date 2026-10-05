@@ -40,7 +40,8 @@
     "bench:corpus": "node bench/gen-corpus.mjs",
     "bench:parity": "node bench/parity.mjs",
     "bench:speed": "node bench/speed.mjs",
-    "bench": "npm run bench:parity && npm run bench:speed"
+    "bench": "npm run bench:parity && npm run bench:speed",
+    "demo": "node demo/demo.mjs"
   },
   "keywords": [
     "dompurify",

@@ -2,6 +2,10 @@
 
 DOMPurify without jsdom. Byte-identical output, small, runs on Workers and other edge runtimes.
 
+![Byte-identical output to DOMPurify on jsdom: purify-edge 100%, sanitize-html 43.5%, rehype-sanitize 9.4%](assets/parity.png)
+
+![The same payloads through DOMPurify on jsdom and purify-edge, then purify-edge inside workerd](assets/demo.gif)
+
 purify-edge runs the unmodified [DOMPurify](https://github.com/cure53/DOMPurify) on a small DOM built on [parse5](https://github.com/inikulin/parse5) instead of jsdom. The sanitizer is DOMPurify. What this package adds is the window DOMPurify runs on: about 800 lines of commented JavaScript in `src/`.
 
 Status: v0.1, not on npm yet.
