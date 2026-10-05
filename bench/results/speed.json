@@ -9,7 +9,6 @@
   "reference": "isomorphic-dompurify",
   "labels": {
     "isomorphic-dompurify": "DOMPurify on jsdom (isomorphic-dompurify)",
-    "linkedom": "DOMPurify + linkedom (patched to start at all)",
     "sanitize-html": "sanitize-html (DOMPurify's tag and attribute lists)",
     "rehype-sanitize": "rehype-sanitize (default schema)",
     "purify-edge": "purify-edge"
@@ -47,41 +46,6 @@
           10.86,
           12.4,
           12.63
-        ]
-      }
-    },
-    "linkedom": {
-      "boot": {
-        "peakRssMB": 70
-      },
-      "a": {
-        "n": 2000,
-        "of": 2000,
-        "capped": false,
-        "opsPerSec": 5110.71948292357,
-        "mbPerSec": 10.805673418897287,
-        "peakRssMB": 407.4,
-        "allOpsPerSec": [
-          5038.19,
-          4861.37,
-          5110.72,
-          5491.99,
-          5156.9
-        ]
-      },
-      "c": {
-        "n": 50,
-        "of": 50,
-        "capped": false,
-        "opsPerSec": 43.5705499246066,
-        "mbPerSec": 17.194244373925507,
-        "peakRssMB": 533.6,
-        "allOpsPerSec": [
-          43.68,
-          44.2,
-          42.73,
-          43.57,
-          42.44
         ]
       }
     },

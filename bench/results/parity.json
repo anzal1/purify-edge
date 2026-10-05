@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-05T10:49:35.377Z",
+  "generatedAt": "2026-10-05T10:54:04.454Z",
   "node": "v24.20.0",
   "reference": "isomorphic-dompurify",
   "rows": [
@@ -15,20 +15,6 @@
       "liveHandlerElements": 0,
       "liveJavascriptUrlOutputs": 0,
       "rawMatches": 0,
-      "errors": 0
-    },
-    {
-      "contender": "linkedom",
-      "label": "DOMPurify + linkedom (patched to start at all)",
-      "vectors": 223,
-      "identical": 30,
-      "identicalPct": 13.5,
-      "corpusA": 2000,
-      "differ": 1608,
-      "liveHandlerOutputs": 168,
-      "liveHandlerElements": 215,
-      "liveJavascriptUrlOutputs": 193,
-      "rawMatches": 186,
       "errors": 0
     },
     {
