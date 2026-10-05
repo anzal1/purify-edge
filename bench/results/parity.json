@@ -1,0 +1,77 @@
+{
+  "generatedAt": "2026-10-05T10:49:35.377Z",
+  "node": "v24.20.0",
+  "reference": "isomorphic-dompurify",
+  "rows": [
+    {
+      "contender": "isomorphic-dompurify",
+      "label": "DOMPurify on jsdom (isomorphic-dompurify)",
+      "vectors": 223,
+      "identical": 223,
+      "identicalPct": 100,
+      "corpusA": 2000,
+      "differ": 0,
+      "liveHandlerOutputs": 0,
+      "liveHandlerElements": 0,
+      "liveJavascriptUrlOutputs": 0,
+      "rawMatches": 0,
+      "errors": 0
+    },
+    {
+      "contender": "linkedom",
+      "label": "DOMPurify + linkedom (patched to start at all)",
+      "vectors": 223,
+      "identical": 30,
+      "identicalPct": 13.5,
+      "corpusA": 2000,
+      "differ": 1608,
+      "liveHandlerOutputs": 168,
+      "liveHandlerElements": 215,
+      "liveJavascriptUrlOutputs": 193,
+      "rawMatches": 186,
+      "errors": 0
+    },
+    {
+      "contender": "sanitize-html",
+      "label": "sanitize-html (DOMPurify's tag and attribute lists)",
+      "vectors": 223,
+      "identical": 97,
+      "identicalPct": 43.5,
+      "corpusA": 2000,
+      "differ": 1598,
+      "liveHandlerOutputs": 0,
+      "liveHandlerElements": 0,
+      "liveJavascriptUrlOutputs": 0,
+      "rawMatches": 24,
+      "errors": 0
+    },
+    {
+      "contender": "rehype-sanitize",
+      "label": "rehype-sanitize (default schema)",
+      "vectors": 223,
+      "identical": 21,
+      "identicalPct": 9.4,
+      "corpusA": 2000,
+      "differ": 1870,
+      "liveHandlerOutputs": 0,
+      "liveHandlerElements": 0,
+      "liveJavascriptUrlOutputs": 0,
+      "rawMatches": 44,
+      "errors": 0
+    },
+    {
+      "contender": "purify-edge",
+      "label": "purify-edge",
+      "vectors": 223,
+      "identical": 223,
+      "identicalPct": 100,
+      "corpusA": 2000,
+      "differ": 0,
+      "liveHandlerOutputs": 0,
+      "liveHandlerElements": 0,
+      "liveJavascriptUrlOutputs": 0,
+      "rawMatches": 0,
+      "errors": 0
+    }
+  ]
+}

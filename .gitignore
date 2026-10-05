@@ -4,3 +4,5 @@ dist/
 results/
 *.log
 .DS_Store
+bench/.cache/
+!bench/results/

@@ -1,0 +1,194 @@
+{
+  "generatedAt": "2026-10-05T10:51:58.347Z",
+  "runs": 5,
+  "node": "v24.20.0",
+  "platform": "Darwin 25.6.0 arm64",
+  "cpu": "Apple M5 Max",
+  "cores": 18,
+  "memGB": 48,
+  "reference": "isomorphic-dompurify",
+  "labels": {
+    "isomorphic-dompurify": "DOMPurify on jsdom (isomorphic-dompurify)",
+    "linkedom": "DOMPurify + linkedom (patched to start at all)",
+    "sanitize-html": "sanitize-html (DOMPurify's tag and attribute lists)",
+    "rehype-sanitize": "rehype-sanitize (default schema)",
+    "purify-edge": "purify-edge"
+  },
+  "results": {
+    "isomorphic-dompurify": {
+      "boot": {
+        "peakRssMB": 162.4
+      },
+      "a": {
+        "n": 2000,
+        "of": 2000,
+        "capped": false,
+        "opsPerSec": 1757.276993861392,
+        "mbPerSec": 3.7154379859145457,
+        "peakRssMB": 605.3,
+        "allOpsPerSec": [
+          1658.31,
+          1753.91,
+          1786.36,
+          1787.54,
+          1757.28
+        ]
+      },
+      "c": {
+        "n": 50,
+        "of": 50,
+        "capped": false,
+        "opsPerSec": 12.097434673481978,
+        "mbPerSec": 4.774010161298805,
+        "peakRssMB": 1235.5,
+        "allOpsPerSec": [
+          12.1,
+          10.89,
+          10.86,
+          12.4,
+          12.63
+        ]
+      }
+    },
+    "linkedom": {
+      "boot": {
+        "peakRssMB": 70
+      },
+      "a": {
+        "n": 2000,
+        "of": 2000,
+        "capped": false,
+        "opsPerSec": 5110.71948292357,
+        "mbPerSec": 10.805673418897287,
+        "peakRssMB": 407.4,
+        "allOpsPerSec": [
+          5038.19,
+          4861.37,
+          5110.72,
+          5491.99,
+          5156.9
+        ]
+      },
+      "c": {
+        "n": 50,
+        "of": 50,
+        "capped": false,
+        "opsPerSec": 43.5705499246066,
+        "mbPerSec": 17.194244373925507,
+        "peakRssMB": 533.6,
+        "allOpsPerSec": [
+          43.68,
+          44.2,
+          42.73,
+          43.57,
+          42.44
+        ]
+      }
+    },
+    "sanitize-html": {
+      "boot": {
+        "peakRssMB": 63.4
+      },
+      "a": {
+        "n": 2000,
+        "of": 2000,
+        "capped": false,
+        "opsPerSec": 9096.720282569238,
+        "mbPerSec": 19.23333669260052,
+        "peakRssMB": 327.9,
+        "allOpsPerSec": [
+          9047.12,
+          9134.19,
+          9096.72,
+          9150.82,
+          9068.28
+        ]
+      },
+      "c": {
+        "n": 50,
+        "of": 50,
+        "capped": false,
+        "opsPerSec": 71.23925737644895,
+        "mbPerSec": 28.113145288897755,
+        "peakRssMB": 413.4,
+        "allOpsPerSec": [
+          71.42,
+          70.2,
+          71.92,
+          70.21,
+          71.24
+        ]
+      }
+    },
+    "rehype-sanitize": {
+      "boot": {
+        "peakRssMB": 63.3
+      },
+      "a": {
+        "n": 2000,
+        "of": 2000,
+        "capped": false,
+        "opsPerSec": 7931.596578597947,
+        "mbPerSec": 16.769897585876606,
+        "peakRssMB": 233.7,
+        "allOpsPerSec": [
+          7905.92,
+          7931.6,
+          7950.73,
+          7977.93,
+          7856.32
+        ]
+      },
+      "c": {
+        "n": 50,
+        "of": 50,
+        "capped": false,
+        "opsPerSec": 54.73140201591494,
+        "mbPerSec": 21.59865098828443,
+        "peakRssMB": 385.7,
+        "allOpsPerSec": [
+          54.73,
+          53.25,
+          54.93,
+          54.73,
+          55.38
+        ]
+      }
+    },
+    "purify-edge": {
+      "boot": {
+        "peakRssMB": 61.9
+      },
+      "a": {
+        "n": 2000,
+        "of": 2000,
+        "capped": false,
+        "opsPerSec": 7542.838627989936,
+        "mbPerSec": 15.947940625157857,
+        "peakRssMB": 209.4,
+        "allOpsPerSec": [
+          7542.84,
+          7577.59,
+          7516.03,
+          7584.21,
+          7496.37
+        ]
+      },
+      "c": {
+        "n": 50,
+        "of": 50,
+        "capped": false,
+        "opsPerSec": 57.36001119768372,
+        "mbPerSec": 22.635978924541476,
+        "peakRssMB": 306.8,
+        "allOpsPerSec": [
+          57.42,
+          55.51,
+          56.73,
+          57.74,
+          57.36
+        ]
+      }
+    }
+  }
+}

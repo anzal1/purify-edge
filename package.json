@@ -36,7 +36,12 @@
     "test": "node --test --test-concurrency=1 test/*.test.mjs",
     "test:official": "sh scripts/official-suite.sh",
     "test:fuzz": "node scripts/fuzz.mjs --cases 20000",
-    "prepack": "npm run build"
+    "prepack": "npm run build",
+    "bench:corpus": "node bench/gen-corpus.mjs",
+    "bench:parity": "node bench/parity.mjs",
+    "bench:speed": "node bench/speed.mjs",
+    "bench:mxss": "node bench/mxss-example.mjs",
+    "bench": "npm run bench:parity && npm run bench:speed"
   },
   "keywords": [
     "dompurify",
@@ -61,9 +66,16 @@
   "devDependencies": {
     "@edge-runtime/vm": "5.0.0",
     "esbuild": "0.28.2",
+    "isomorphic-dompurify": "4.4.0",
     "jsdom": "29.1.1",
+    "linkedom": "0.18.13",
     "marked": "18.0.14",
     "miniflare": "4.20260730.0",
-    "typescript": "5.9.3"
+    "rehype-parse": "9.0.1",
+    "rehype-sanitize": "6.0.0",
+    "rehype-stringify": "10.0.1",
+    "sanitize-html": "2.18.0",
+    "typescript": "5.9.3",
+    "unified": "11.0.5"
   }
 }

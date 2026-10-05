@@ -59,7 +59,7 @@ purify-edge always uses its own window, including in a browser. In the browser u
 
 jsdom is a very large piece of software to carry along just to give a sanitizer a parser and a tree.
 
-- It is heavy. In the measurements below, DOMPurify on jsdom peaks at 600 MB resident on 2,000 chat-sized documents and 1,346 MB on 50 newsletters, against 185 MB and 435 MB for purify-edge.
+- It is heavy. In the measurements below, DOMPurify on jsdom peaks at 605 MB resident on 2,000 chat-sized documents and 1,236 MB on 50 newsletters, against 209 MB and 307 MB for purify-edge.
 - It leaks. In the fuzzing runs, jsdom grew about 30 KB per `sanitize()` call for the life of the process. The shim stayed flat.
 - It cannot run on edge runtimes. DOMPurify's maintainers say a server needs a DOM, recommend jsdom, and have said they do not intend to support Workers (cure53/DOMPurify issues #577 and #1583). jsdom needs Node APIs that isolates do not have.
 
@@ -67,37 +67,41 @@ The obvious alternatives either change the output or change the security. Swappi
 
 ## Parity
 
-Output compared byte for byte with DOMPurify on jsdom, default config, on DOMPurify's own `expect.mjs` fixture (223 vectors, tag 3.4.16). The other contenders ran the same vectors.
+Output compared byte for byte with DOMPurify on jsdom, default config, on DOMPurify's own `expect.mjs` fixture (223 vectors, tag 3.4.16). The other contenders ran the same vectors, and the same 2,000 chat outputs were re-parsed with parse5 (a spec-compliant parser, the way a browser would parse the output string) to count event handlers that would be live.
 
-| Contender | Identical to DOMPurify on jsdom |
-|---|---|
-| purify-edge | 100% (223 of 223) |
-| sanitize-html (DOMPurify's default tag and attribute lists) | 43.5% (97 of 223) |
-| DOMPurify + linkedom (patched to start at all) | 13.5% (30 of 223) |
-| rehype-sanitize (default schema) | 9.4% (21 of 223) |
+| Contender | Identical to DOMPurify on jsdom | Live `on*` handlers after re-parse (of 2,000 chat outputs) | Raw string matches |
+|---|---|---|---|
+| purify-edge | 100% (223 of 223) | 0 | 0 |
+| sanitize-html (DOMPurify's default tag and attribute lists) | 43.5% (97 of 223) | 0 | 24 |
+| DOMPurify + linkedom (patched to start at all) | 13.5% (30 of 223) | **168** | 186 |
+| rehype-sanitize (default schema) | 9.4% (21 of 223) | 0 | 44 |
 
-Read this table with care. For sanitize-html and rehype-sanitize, different bytes mostly mean different serialization and different rules (`<img />` against `<img>`, `&#x3C;` against `&lt;`), not necessarily unsafe output. They are different sanitizers. The linkedom row is different: it is DOMPurify itself on a DOM that is not faithful enough, and event handlers survived in 326 of 2,000 chat outputs (a crude regex for `on*=` or `javascript:` in tag position; jsdom and purify-edge: 0). DOMPurify 3.4.16 does not initialise on linkedom at all without about 12 lines of compatibility patching, and then it still diverges from jsdom on most inputs.
+"Raw string matches" is a regex for `on*=` in tag position on the output string, with no re-parse. It over-counts: the matches for sanitize-html and rehype-sanitize are payloads that survived as inert attribute text, which is why the re-parse count is the one that matters.
 
-On 2,000 marked-rendered LLM-style chat responses (about a quarter with injected hostile payloads) and 50 large newsletter documents (100 KB to 1 MB), purify-edge differed from jsdom 0 times.
+Read this table with care. For sanitize-html and rehype-sanitize, different bytes mostly mean different serialization and different rules (`<img />` against `<img>`, `&#x3C;` against `&lt;`), not necessarily unsafe output. They are different sanitizers. The linkedom row is different: it is DOMPurify itself on a DOM that is not faithful enough, and event handlers reach the output in 168 of 2,000 chat outputs and become live when a browser parses the result (193 outputs also keep a live `javascript:` URL). DOMPurify 3.4.16 does not initialise on linkedom at all without a small compatibility patch, and then it still diverges from jsdom on most inputs. [bench/README.md](bench/README.md) has the method, the extra columns, and a worked example.
+
+On the same 2,000 chat responses (about a quarter with injected hostile payloads) and on 50 large newsletter documents (100 KB to 1 MB), purify-edge differed from jsdom 0 times in the earlier verification. `npm run bench:parity` reproduces the 2,000-response result: 0 differing outputs.
 
 ## Speed and memory
 
-Measured with the verification prototype of this code, before the packaging cleanup (the benchmark harness is not part of this repository; the behaviour of `src/` is unchanged). Apple M5 Max, macOS arm64, Node 24.20.0. DOMPurify 3.4.16, isomorphic-dompurify 4.4.0 (jsdom 30.1.2), parse5 8.0.1, linkedom 0.18.13. Default DOMPurify config everywhere.
+Reproduce with `npm run bench:speed`; the method, corpus generator and raw per-run numbers are in [bench/README.md](bench/README.md). Apple M5 Max, macOS arm64, Node 24.20.0, run under `nice -n 19`. DOMPurify 3.4.16, isomorphic-dompurify 4.4.0 (jsdom 30.1.2), parse5 8.0.1, linkedom 0.18.13. Default DOMPurify config everywhere.
 
 - Corpus a: 2,000 marked-rendered chat responses, 2.1 KB on average.
 - Corpus c: 50 generated newsletter documents, 100 KB to 1 MB each, 19.7 MB in total.
 
-Throughput is operations per second (median of 5 runs for jsdom and purify-edge, a single run for the others). Memory is peak resident set size.
+Throughput is operations per second, the median of 5 runs, each run in its own process. Memory is the peak resident set size of that process.
 
 | Contender | a ops/s | a vs jsdom | c ops/s | c vs jsdom | peak RSS a | peak RSS c | idle RSS |
 |---|---|---|---|---|---|---|---|
-| DOMPurify on jsdom | 1,827 | 1.0x | 12.6 | 1.0x | 600 MB | 1,346 MB | 171 MB |
-| DOMPurify + linkedom | 5,734 | 3.1x | 47.2 | 3.7x | 291 MB | 551 MB | 69 MB |
-| sanitize-html | 9,206 | 5.0x | 69.1 | 5.5x | 193 MB | 391 MB | 61 MB |
-| rehype-sanitize | 7,680 | 4.2x | 57.5 | 4.6x | 133 MB | 346 MB | 62 MB |
-| **purify-edge** | 8,822 | 4.8x | 55.8 | 4.4x | 185 MB | 435 MB | 61 MB |
+| DOMPurify on jsdom | 1,757 | 1.0x | 12.1 | 1.0x | 605 MB | 1,236 MB | 162 MB |
+| DOMPurify + linkedom | 5,111 | 2.9x | 43.6 | 3.6x | 407 MB | 534 MB | 70 MB |
+| sanitize-html | 9,097 | 5.2x | 71.2 | 5.9x | 328 MB | 413 MB | 63 MB |
+| rehype-sanitize | 7,932 | 4.5x | 54.7 | 4.5x | 234 MB | 386 MB | 63 MB |
+| **purify-edge** | 7,543 | 4.3x | 57.4 | 4.7x | 209 MB | 307 MB | 62 MB |
 
-So purify-edge is 4.4x to 4.8x faster than DOMPurify on jsdom, with 3.1x to 3.2x lower peak memory. That is a little under the 5x I was aiming for. It is about as fast as sanitize-html and rehype-sanitize, which means parse5 and DOMPurify's own walk set the ceiling, not the shim. This was not profiled further. sanitize-html and rehype-sanitize are not substitutes for DOMPurify; they are in the table as a speed floor.
+So purify-edge is 4.3x to 4.7x faster than DOMPurify on jsdom, with 2.9x to 4.0x lower peak memory. That is a little under the 5x I was aiming for. It is in the same range as sanitize-html and rehype-sanitize, which means parse5 and DOMPurify's own walk set the ceiling, not the shim. This was not profiled further. sanitize-html and rehype-sanitize are not substitutes for DOMPurify; they are in the table as a speed floor.
+
+An earlier measurement, taken with the verification prototype before the packaging cleanup, gave 8,822 ops/s on a and 55.8 on c. The packaged code measures about 15% slower on a (corpus c is unchanged within noise); the table above is the packaged `src/`.
 
 Bundle size, with parse5, DOMPurify and the shim, minified for a neutral platform: 218.5 KB, 65.6 KB gzipped (`npm test` prints the current numbers).
 
@@ -139,6 +143,8 @@ The official suite does have gaps. Deliberately breaking the shim's shadow root,
 ```sh
 npm ci
 npm test                                  # package tests, edge isolate, Workers smoke test
+npm run bench:parity                      # parity and live-handler comparison against jsdom, linkedom, sanitize-html, rehype-sanitize
+npm run bench:speed                       # throughput and peak memory, one process per measurement (use nice -n 19)
 sh scripts/official-suite.sh              # clones DOMPurify at the pinned tag; needs git, npm and network
 node scripts/fuzz.mjs --cases 20000       # the CI smoke run, about 12 seconds
 node scripts/fuzz.mjs --cases 200000      # the full default-config run, about 2 minutes
@@ -155,6 +161,7 @@ The fuzzer runs jsdom in short-lived child processes because of the leak. Use `n
 - `src/index.js`: wires DOMPurify to the window.
 - `scripts/`: official-suite runner, fuzzer, diff classifier, build.
 - `test/`: parity, regression, API, types, edge isolate and Workers tests.
+- `bench/`: the comparison benchmark behind the parity and speed tables (not published to npm). `npm run bench:parity`, `npm run bench:speed`.
 
 ## Credits
 
