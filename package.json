@@ -1,7 +1,15 @@
 {
   "name": "purify-edge",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "DOMPurify without jsdom. Byte-identical output, small, runs on Workers and other edge runtimes.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/anzal1/purify-edge.git"
+  },
+  "homepage": "https://github.com/anzal1/purify-edge#readme",
+  "bugs": {
+    "url": "https://github.com/anzal1/purify-edge/issues"
+  },
   "type": "module",
   "main": "./dist/index.cjs",
   "module": "./src/index.js",
