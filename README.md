@@ -4,6 +4,8 @@ DOMPurify without jsdom. Byte-identical output, small, runs on Workers and other
 
 purify-edge runs the unmodified [DOMPurify](https://github.com/cure53/DOMPurify) on a small DOM built on [parse5](https://github.com/inikulin/parse5) instead of jsdom. The sanitizer is DOMPurify. What this package adds is the window DOMPurify runs on: about 800 lines of commented JavaScript in `src/`.
 
+Status: v0.1, not on npm yet.
+
 It is verified against DOMPurify **3.4.16**, and only that version (see [Verified against DOMPurify 3.4.16](#verified-against-dompurify-3416)).
 
 ## Install
