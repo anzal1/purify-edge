@@ -63,7 +63,7 @@ jsdom is a very large piece of software to carry along just to give a sanitizer 
 
 - It is heavy. In the measurements below, DOMPurify on jsdom peaks at 605 MB resident on 2,000 chat-sized documents and 1,236 MB on 50 newsletters, against 209 MB and 307 MB for purify-edge.
 - It leaks. In the fuzzing runs, jsdom grew about 30 KB per `sanitize()` call for the life of the process. The shim stayed flat.
-- It cannot run on edge runtimes. DOMPurify's maintainers say a server needs a DOM, recommend jsdom, and have said they do not intend to support Workers (cure53/DOMPurify issues #577 and #1583). jsdom needs Node APIs that isolates do not have.
+- It cannot run on edge runtimes. jsdom needs Node APIs that Workers-style isolates do not have, and DOMPurify needs a DOM to run at all. DOMPurify's maintainers recommend jsdom on the server and, asked about a lighter option, said they know of none where their tests pass: "If you find one where our tests are green, we'd love to know about it" ([cure53/DOMPurify#1583](https://github.com/cure53/DOMPurify/issues/1583#issuecomment-5306897664)).
 
 The obvious alternatives either change the output or change the security. Swapping jsdom for linkedom or happy-dom does not work with DOMPurify unpatched, and the maintainers do not consider happy-dom safe. Other sanitizers (sanitize-html, rehype-sanitize) have their own rules and their own serialization, so their output differs from DOMPurify's.
 
