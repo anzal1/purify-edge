@@ -38,6 +38,8 @@ CommonJS works too: `const DOMPurify = require("purify-edge")` returns the insta
 
 Types are DOMPurify's own, re-exported: `import type { Config } from "dompurify"` works, and so does `import type { Config } from "purify-edge"`.
 
+Copy-paste recipes for Workers, Hono, markdown rendering for AI chat, Next.js, Astro, SvelteKit and migrating from isomorphic-dompurify are in [docs/recipes.md](docs/recipes.md).
+
 ## Migrating from isomorphic-dompurify
 
 ```diff
