@@ -8,6 +8,15 @@ on:
 permissions:
   contents: read
 
+# On main, once every check passes, the publish job releases to npm if the
+# version in package.json is not on npm yet, so releasing is just bumping the
+# version. Publishing uses npm trusted publishing (OIDC), so there is no token
+# in the repo.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  # Never cancel a run on main, it may be mid-publish.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 # Branch protection: mark "test", "official-suite" and "fuzz-smoke" (or just "ci-ok", which needs all three) as required status checks.
 jobs:
   test:
@@ -71,3 +80,48 @@ jobs:
     steps:
       - run: |
           test "${{ needs.test.result }}" = "success" && test "${{ needs.official-suite.result }}" = "success" && test "${{ needs.fuzz-smoke.result }}" = "success"
+
+  publish:
+    name: publish
+    needs: [test, official-suite, fuzz-smoke]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - name: Is this version already on npm?
+        id: check
+        run: |
+          NAME=$(node -p "require('./package.json').name")
+          VER=$(node -p "require('./package.json').version")
+          echo "version=$VER" >> "$GITHUB_OUTPUT"
+          if [ -n "$(npm view "$NAME@$VER" version 2>/dev/null)" ]; then
+            echo "$NAME@$VER is already published, nothing to do"
+            echo "publish=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "publish=true" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Publish
+        if: steps.check.outputs.publish == 'true'
+        run: |
+          npm install -g npm@latest
+          npm ci
+          # prepack builds dist/
+          case "${{ steps.check.outputs.version }}" in
+            *-*) npm publish --access public --tag next ;;
+            *)   npm publish --access public ;;
+          esac
+      - name: GitHub release
+        if: steps.check.outputs.publish == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="v${{ steps.check.outputs.version }}"
+          case "$V" in *-*) PRE=--prerelease ;; *) PRE= ;; esac
+          gh release create "$V" --target "$GITHUB_SHA" --generate-notes $PRE
