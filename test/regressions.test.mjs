@@ -132,3 +132,21 @@ test("a NodeIterator survives removal of the node it is on (DOMPurify removes wh
   for (let n = it.nextNode(); n; n = it.nextNode()) { seen.push(n.localName); if (n.localName === "p") n.remove(); }
   assert.deepEqual(seen, ["body", "div", "p", "p", "p"]);
 });
+
+test("XML entity and prefix lookups ignore Object.prototype names (reported in kkomelin/isomorphic-dompurify#498)", () => {
+  // The entity and namespace tables were plain objects, so `&constructor;` expanded to "function Object() { [native code] }"
+  // and an undeclared `toString:` prefix resolved instead of failing. jsdom rejects both documents.
+  const X = 'xmlns="http://www.w3.org/1999/xhtml"';
+  for (const name of ["constructor", "toString", "__proto__", "hasOwnProperty", "valueOf"]) {
+    for (const input of [`<p ${X}>a&${name};b</p>`, `<p ${X}><${name}:x/>t</p>`, `<p ${X} ${name}:a="1">t</p>`]) {
+      const r = both(input, XHTML);
+      assert.equal(r.edge, r.jsdom, input);
+      assert.ok(!r.edge.includes("native code"), input);
+    }
+  }
+  // declared entities and prefixes with those names still work like any other name
+  const declared = both(`<!DOCTYPE p [<!ENTITY constructor "ok">]><p ${X}>a&constructor;b</p>`, XHTML);
+  assert.equal(declared.edge, declared.jsdom);
+  const bound = both(`<p ${X} xmlns:constructor="urn:x"><constructor:b/>t</p>`, XHTML);
+  assert.equal(bound.edge, bound.jsdom);
+});

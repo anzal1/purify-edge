@@ -1,0 +1,86 @@
+name: upstream-watch
+
+# Daily: if DOMPurify or parse5 has published a version newer than the pin, run the full upgrade gate
+# (package tests, DOMPurify's official suite, a fuzz run) against it, then open a pull request when it
+# passes or an issue when it does not. Merging that pull request with a version bump releases it through ci.yml.
+
+on:
+  schedule:
+    - cron: '17 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Compare pins with the latest releases
+        id: v
+        run: |
+          for p in dompurify parse5; do
+            pinned=$(node -p "require('./package.json').dependencies['$p']")
+            latest=$(npm view "$p" version)
+            echo "$p pinned $pinned, latest $latest"
+            echo "${p}_pinned=$pinned" >> "$GITHUB_OUTPUT"
+            echo "${p}_latest=$latest" >> "$GITHUB_OUTPUT"
+          done
+      - name: Skip when the pins are current or this upgrade was already handled
+        id: need
+        env:
+          GH_TOKEN: ${{ github.token }}
+          DP: ${{ steps.v.outputs.dompurify_latest }}
+          P5: ${{ steps.v.outputs.parse5_latest }}
+        run: |
+          if [ "$DP" = "${{ steps.v.outputs.dompurify_pinned }}" ] && [ "$P5" = "${{ steps.v.outputs.parse5_pinned }}" ]; then
+            echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          title="Upstream: dompurify $DP, parse5 $P5"
+          if [ -n "$(gh pr list --state all --search "$title in:title" --json number -q '.[0].number')$(gh issue list --state all --search "$title in:title" --json number -q '.[0].number')" ]; then
+            echo "already handled: $title"; echo "run=false" >> "$GITHUB_OUTPUT"; exit 0
+          fi
+          echo "run=true" >> "$GITHUB_OUTPUT"
+          echo "title=$title" >> "$GITHUB_OUTPUT"
+      - name: Move the pins and run the gate
+        id: gate
+        if: steps.need.outputs.run == 'true'
+        continue-on-error: true
+        run: |
+          npm pkg set "dependencies.dompurify=${{ steps.v.outputs.dompurify_latest }}" "dependencies.parse5=${{ steps.v.outputs.parse5_latest }}"
+          npm install --no-audit --no-fund
+          fail=0
+          step() { name=$1; shift; echo "## $name" >> gate.log; if "$@" > step.log 2>&1; then echo "passed" >> gate.log; else fail=1; echo "FAILED" >> gate.log; fi; tail -15 step.log >> gate.log; }
+          step "npm test" npm test
+          step "official suite" sh scripts/official-suite.sh
+          step "fuzz, default configs" node scripts/fuzz.mjs --cases 50000
+          step "fuzz, extended configs" node scripts/fuzz.mjs --ext --cases 20000
+          cat gate.log
+          exit $fail
+      - name: Open a pull request (gate passed)
+        if: steps.need.outputs.run == 'true' && steps.gate.outcome == 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          branch="upstream/dompurify-${{ steps.v.outputs.dompurify_latest }}-parse5-${{ steps.v.outputs.parse5_latest }}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -b "$branch"
+          git add package.json package-lock.json
+          git commit -m "${{ steps.need.outputs.title }}"
+          git push origin "$branch"
+          { echo "The upgrade gate passed against the new versions. Before merging: update the version numbers in the README's upgrade-policy section and bump the package version."; echo; echo '```'; cat gate.log; echo '```'; } > body.md
+          gh pr create --title "${{ steps.need.outputs.title }}" --body-file body.md --head "$branch"
+      - name: Open an issue (gate failed)
+        if: steps.need.outputs.run == 'true' && steps.gate.outcome != 'success'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          { echo "The upgrade gate failed against the new versions, so the pin stays where it is until this is understood."; echo; echo '```'; tail -c 60000 gate.log 2>/dev/null || echo "no log"; echo '```'; } > body.md
+          gh issue create --title "${{ steps.need.outputs.title }}" --body-file body.md

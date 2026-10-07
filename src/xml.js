@@ -10,14 +10,15 @@ const NAME = new RegExp(`^[${NS}][${NS}\\-.0-9\\u00B7\\u0300-\\u036F\\u203F-\\u2
 const XML_CHAR = /^(?:[\t\n\r -\uD7FF\uE000-\uFFFD]|[\uD800-\uDBFF][\uDC00-\uDFFF])*$/;
 // saxes (jsdom's XML parser) accepts a lone high surrogate in text, comments and attribute values, then the serializer rejects it; mirror that split.
 const PARSE_CHAR = /^(?:[\t\n\r\u0020-\uD7FF\uE000-\uFFFD]|[\uD800-\uDBFF][\uDC00-\uDFFF]|[\uD800-\uDBFF](?![\uDC00-\uDFFF]))*$/;
-const ENTS = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" };
+// Null prototype, so names like "constructor" or "__proto__" never resolve to Object.prototype members.
+const ENTS = Object.assign(Object.create(null), { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'" });
 const fail = (m) => { throw new XMLSyntaxError(m); };
 
 // build: { element(ns, prefix, local), attr(el, ns, prefix, local, value), text, cdata, comment, pi, doctype, append(parent, child) }
 // scope: prefix -> namespace for the context (fragment parsing); "" is the default namespace.
 export function parseXML(src, build, root, { fragment = false, scope = {} } = {}) {
-  const s = src.replace(/\r\n?/g, "\n"), n = s.length, ents = { ...ENTS };
-  const stack = [{ node: root, qn: null, scope: { xml: XML, xmlns: XMLNS, ...scope } }];
+  const s = src.replace(/\r\n?/g, "\n"), n = s.length, ents = Object.assign(Object.create(null), ENTS);
+  const stack = [{ node: root, qn: null, scope: Object.assign(Object.create(null), { xml: XML, xmlns: XMLNS }, scope) }];
   let i = 0, seenRoot = false, ended = false;
   const top = () => stack[stack.length - 1];
   const expand = (t) => {
@@ -28,7 +29,7 @@ export function parseXML(src, build, root, { fragment = false, scope = {} } = {}
         if (cp > 0x10ffff || !XML_CHAR.test(String.fromCodePoint(cp))) fail("malformed character entity");
         return String.fromCodePoint(cp);
       }
-      if (!(e in ents)) fail("unknown entity: &" + e + ";");
+      if (!Object.hasOwn(ents, e)) fail("unknown entity: &" + e + ";");
       return ents[e];
     });
   };
@@ -62,7 +63,7 @@ export function parseXML(src, build, root, { fragment = false, scope = {} } = {}
       for (; j < n; j++) { const c = s[j]; if (c === "[") depth++; else if (c === "]") depth--; else if (c === ">" && depth <= 0) break; }
       if (j >= n) fail("unterminated doctype");
       const body = s.slice(i + 9, j);
-      for (const m of body.matchAll(/<!ENTITY[ \t\n\r]+([^ \t\n\r%]+)[ \t\n\r]+"([^"]*)"/g)) if (!(m[1] in ents)) ents[m[1]] = m[2];
+      for (const m of body.matchAll(/<!ENTITY[ \t\n\r]+([^ \t\n\r%]+)[ \t\n\r]+"([^"]*)"/g)) if (!Object.hasOwn(ents, m[1])) ents[m[1]] = m[2];
       build.append(root, build.doctype(body)); i = j + 1;
     } else if (s.startsWith("</", i)) {
       const j = s.indexOf(">", i); if (j < 0) fail("unterminated end tag");
@@ -90,7 +91,7 @@ export function parseXML(src, build, root, { fragment = false, scope = {} } = {}
       }
       const selfClose = s[j] === "/"; if (selfClose) { j++; if (s[j] !== ">") fail("malformed empty-element tag"); }
       if (s[j] !== ">") fail("unterminated start tag"); j++;
-      const sc = { ...top().scope };
+      const sc = Object.assign(Object.create(null), top().scope);
       for (const [an, av] of raw) {
         if (an === "xmlns") sc[""] = av;
         else if (an.startsWith("xmlns:")) {
@@ -100,13 +101,13 @@ export function parseXML(src, build, root, { fragment = false, scope = {} } = {}
         }
       }
       const ci = qn.indexOf(":"), prefix = ci < 0 ? "" : qn.slice(0, ci), local = ci < 0 ? qn : qn.slice(ci + 1);
-      if (prefix && !(prefix in sc)) fail("unbound namespace prefix: " + prefix);
+      if (prefix && !Object.hasOwn(sc, prefix)) fail("unbound namespace prefix: " + prefix);
       const el = build.element(sc[prefix] || null, prefix || null, local);
       const seen = new Set();
       for (const [an, av] of raw) {
         const k = an.indexOf(":"), ap = k < 0 ? "" : an.slice(0, k), al = k < 0 ? an : an.slice(k + 1);
         let ns = null;
-        if (an === "xmlns" || ap === "xmlns") ns = XMLNS; else if (ap) { if (!(ap in sc)) fail("unbound namespace prefix: " + ap); ns = sc[ap]; }
+        if (an === "xmlns" || ap === "xmlns") ns = XMLNS; else if (ap) { if (!Object.hasOwn(sc, ap)) fail("unbound namespace prefix: " + ap); ns = sc[ap]; }
         const key = ns + "|" + al; if (seen.has(key)) fail("duplicate attribute: " + an); seen.add(key);
         build.attr(el, ns, ap || null, al, av);
       }
@@ -126,7 +127,7 @@ const esc = (v, attr) => { let r = v.replace(/&/g, "&amp;").replace(/</g, "&lt;"
 const bad = (m) => { throw new XMLSyntaxError("Failed to serialize XML: " + m); };
 
 export function serializeXML(node) {
-  const map = { [XML]: ["xml"] }, refs = { idx: 1 };
+  const map = Object.assign(Object.create(null), { [XML]: ["xml"] }), refs = { idx: 1 };
   return ser(node, null, map, refs);
 }
 function ser(node, ns, map, refs) {
@@ -152,7 +153,7 @@ function ser(node, ns, map, refs) {
 function prefixFor(map, ns, pref) { const l = map[ns]; return !l ? null : l.includes(pref) ? pref : l[l.length - 1]; }
 function serEl(el, inherited, parentMap, refs) {
   if (el.localName.includes(":") || !NAME.test(el.localName)) bad("element node localName is not a valid XML name.");
-  const map = { ...parentMap }, local = Object.create(null); let defNs = null, ignoreDef = false, qn, out = "<";
+  const map = Object.assign(Object.create(null), parentMap), local = Object.create(null); let defNs = null, ignoreDef = false, qn, out = "<";
   for (const a of el.attributes) if (a.namespaceURI === XMLNS) {
     if (a.prefix === null) { defNs = a.value; continue; }
     if (a.value === XML) continue;

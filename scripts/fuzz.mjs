@@ -19,6 +19,7 @@ import path from "node:path";
 import Module, { createRequire } from "node:module";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { failsClosed } from "./classify-diffs.mjs";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const arg = (name, dflt) => { const i = process.argv.indexOf("--" + name); return i < 0 ? dflt : process.argv[i + 1]; };
@@ -217,13 +218,14 @@ const run = (p, s, cfg, w, name) => {
     if (name === "IN_PLACE") { const d = w.document.createElement("div"); d.innerHTML = s; p.sanitize(d, cfg); return "OUT:" + d.innerHTML; }
     const r = p.sanitize(s, cfg);
     let o = "OUT:" + ser(r, w);
-    if (name.endsWith("removed[]")) o += "|" + JSON.stringify(p.removed.map((x) => (x.element ? "E:" + x.element.nodeName : "A:" + (x.attribute && x.attribute.name) + "@" + (x.from && x.from.nodeName))));
+    if (name.startsWith("removed[]")) o += "|" + JSON.stringify(p.removed.map((x) => (x.element ? "E:" + x.element.nodeName : "A:" + (x.attribute && x.attribute.name) + "@" + (x.from && x.from.nodeName))));
     return o;
   } catch (e) { return "ERR:" + (e && e.name) + ":" + String(e && e.message).slice(0, 120); }
 };
 
 const diffs = [], byCfg = {}, knownEx = []; let done = 0, nd = 0, errs = 0, known = 0;
-// XML configs + an unpaired surrogate in the input: saxes (jsdom) lets a high surrogate swallow the next character (even "<"); documented difference, counted apart.
+// XML configs + an unpaired surrogate in the input: saxes (jsdom) lets a high surrogate swallow the next character (even "<"); documented difference, counted apart,
+// but only when the purify-edge output fails closed (keeps no more than jsdom's). Any other surrogate difference counts as a real one.
 const XMLCFG = new Set(["XHTML", "NAMESPACE svg"]);
 const cov = { nonEmptyOutput: 0, svg: 0, math: 0, template: 0, form: 0, table: 0, style: 0, textarea: 0, noscript: 0, hookTarget: 0 }; // default-config output coverage
 const t0 = Date.now();
@@ -235,7 +237,7 @@ for (; done < N; done++) {
     if (a.startsWith("ERR:")) errs++;
     if (im.name === "default" && a.length > 4) { cov.nonEmptyOutput++; for (const k of ["svg", "math", "template", "form", "table", "style", "textarea", "noscript"]) if (a.includes("<" + k)) cov[k]++; }
     if (im.name === "ADD_ATTR+hook" && a.includes("target=")) cov.hookTarget++;
-    if (a !== b && XMLCFG.has(im.name) && /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(input)) { known++; knownEx.length < 5 && knownEx.push({ cfg: im.name, input, jsdom: a, shim: b }); } else if (a !== b) { nd++; byCfg[im.name] = (byCfg[im.name] || 0) + 1; if (diffs.length < 400) diffs.push({ cfg: im.name, input, jsdom: a, shim: b }); }
+    if (a !== b && XMLCFG.has(im.name) && /[\ud800-\udbff](?![\udc00-\udfff])|(?<![\ud800-\udbff])[\udc00-\udfff]/.test(input) && failsClosed(a, b)) { known++; knownEx.length < 5 && knownEx.push({ cfg: im.name, input, jsdom: a, shim: b }); } else if (a !== b) { nd++; byCfg[im.name] = (byCfg[im.name] || 0) + 1; if (diffs.length < 400) diffs.push({ cfg: im.name, input, jsdom: a, shim: b }); }
   }
   if (done % 20000 === 0 && done) console.error(`${done} cases, ${nd} diffs, ${((Date.now() - t0) / 1000).toFixed(0)}s`);
 }
